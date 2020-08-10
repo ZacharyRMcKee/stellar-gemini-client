@@ -37,9 +37,12 @@ def parse_links(body) -> Tuple[List[str], str]:
 
 def do_connection(url) -> List[str]:
   request = url + "\r\n"
+  print("CONNECTING TO " + url)
 
   if url[:9] == "gemini://":
     pruned_url = url[9:]
+  else:
+    pruned_url = url
   hostname = pruned_url.split("/", 1)[0]
   soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
@@ -73,6 +76,27 @@ def do_connection(url) -> List[str]:
 def is_absolute(url):
   return bool(urlparse(url).netloc)
 
+def is_int(str):
+  try:
+    int(str)
+    return True
+  except ValueError:
+    return False
+
+def get_new_link(input_url, link):
+  new_url = ""
+  if link[:9] == "gemini://":
+    link = link[9:]
+  if is_absolute(input_url):
+    new_url = input_url
+  elif input_url == "..":
+    new_url = link.rsplit('/', 1)[0]
+  else:
+    new_url = link + input_url
+  if new_url[:9] != "gemini://":
+    new_url = "gemini://" + new_url
+  return new_url
+
 
 def client(url):
   print("Stellar Gemini Client")
@@ -86,15 +110,19 @@ def client(url):
     print(">>>", end=" ")
     while True:
       user_input = input()
-      user_num = int(user_input)
-      try:
-        selected_link = links[user_num-1]
+      if is_int(user_input):
+        user_num = int(user_input)
+        try:
+          selected_link = links[user_num-1]
+          break
+        except IndexError:
+          print("Bad link, please select a link in the list.")
+      else:
+        selected_link = user_input
         break
-      except IndexError:
-        print("Bad link, please select a link in the list.")
-      print(">>>", end=" ")
 
-    current_url += selected_link
+      print(">>>", end=" ")
+    current_url = get_new_link(selected_link, current_url)
 if len(sys.argv) > 1:
   url = sys.argv[1]
 else:
