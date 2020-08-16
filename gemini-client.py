@@ -77,8 +77,12 @@ def parse_links(body) -> Tuple[List[str], str]:
   body = "\n".join(lines)
   return (links, body)
 
-def do_connection(url) -> List[str]:
+def do_connection(url, retries=0) -> List[str]:
   request = url + "\r\n"
+  if retries > 5:
+    print("TOO MANY REDIRECTS. ABORTING.")
+    retries = 0
+    return [], url
   print("CONNECTING TO " + url)
 
   scheme, netloc, path, params, query, fragment = urlparse(url, scheme="gemini")
@@ -97,16 +101,19 @@ def do_connection(url) -> List[str]:
     response_code, meta, (body_type, body) = get_response(conn, request)
     conn.close()
     print("RESPONSE CODE: " + response_code)
-    print("META: " + meta)
+    print("META: " + meta) 
     if response_code[0] == '2':
       links, body = parse_links(body)
       print(body)
+      retries = 0
     elif response_code[0] == '3':
       print("REDIRECTED TO " + meta)
       time.sleep(1)
       conn.close()
-      url = meta
-      links, url = do_connection(meta)
+      new_url = get_new_link(meta, url)
+
+
+      links, url = do_connection(new_url, retries=retries+1)
   finally:
     conn.close()
   return links, url
