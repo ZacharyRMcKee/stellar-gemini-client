@@ -8,9 +8,6 @@ import sys
 import time
 import webbrowser
 
-from pathlib import Path
-
-
 def parse_mime(meta, response_code) -> Tuple[str, List[Tuple[str, str]]]:
   assert response_code[0] == "2"
 
@@ -82,7 +79,7 @@ def parse_links(body) -> Tuple[List[str], str]:
 
 
 
-def response_code_properly_formatted(response_code):
+def response_code_properly_formatted(response_code) -> bool:
   return len(response_code) == 2 and is_int(response_code[0]) and is_int(response_code[1])
 
 def do_connection(url, retries=0) -> List[str]:
@@ -203,6 +200,7 @@ def client(url) -> None:
 
       print_repl_prompt()
     current_url = get_new_link(selected_link, current_url)
+
 if len(sys.argv) > 1:
   url = sys.argv[1]
 else:
