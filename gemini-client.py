@@ -72,10 +72,18 @@ def parse_links(body) -> Tuple[List[str], str]:
         lines[i] = link_chunks[0] + " " + link_chunks[2]
       else:
         lines[i] = " ".join(link_chunks)
-      links.append(link_chunks[1])
+      try:
+        links.append(link_chunks[1])
+      except IndexError:
+        links.append("about:blank")
 
   body = "\n".join(lines)
   return (links, body)
+
+
+
+def response_code_properly_formatted(response_code):
+  return len(response_code) == 2 and is_int(response_code[0]) and is_int(response_code[1])
 
 def do_connection(url, retries=0) -> List[str]:
   request = url + "\r\n"
@@ -101,8 +109,16 @@ def do_connection(url, retries=0) -> List[str]:
     response_code, meta, (body_type, body) = get_response(conn, request)
     conn.close()
     print("RESPONSE CODE: " + response_code)
-    print("META: " + meta) 
-    if response_code[0] == '2':
+    print("META: " + meta)
+    if not response_code_properly_formatted(response_code):
+      print("BAD RESPONSE CODE")
+      conn.close()
+      return [], ""
+    if response_code[0] == '1':
+      print('HANDLING OF 1X RESPONSES NOT IMPLEMENTED YET')
+      conn.close()
+      return [], ""
+    elif response_code[0] == '2':
       links, body = parse_links(body)
       print(body)
       retries = 0
@@ -111,9 +127,20 @@ def do_connection(url, retries=0) -> List[str]:
       time.sleep(1)
       conn.close()
       new_url = get_new_link(meta, url)
-
-
       links, url = do_connection(new_url, retries=retries+1)
+    elif response_code[0] == '4' or response_code[0] == '5':
+      conn.close()
+      return [], ""
+    elif response_code[0] == '6':
+      print("CLIENT CERTIFICATE REQUIRED")
+      print("NOT YET IMPLEMENTED.")
+      return [], ""
+    else:
+      print("BAD RESPONSE CODE")
+      return [], ""
+
+
+
   finally:
     conn.close()
   return links, url
