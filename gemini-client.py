@@ -1,12 +1,16 @@
 import socket
 import ssl
 import sys
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, quote
 from urllib.parse import urljoin
 from typing import List, Set, Dict, Tuple, Optional
 import sys
 import time
 import webbrowser
+
+def print_repl_prompt() -> None:
+  print(">>>", end=" ")
+
 
 def parse_mime(meta, response_code) -> Tuple[str, List[Tuple[str, str]]]:
   assert response_code[0] == "2"
@@ -112,9 +116,13 @@ def do_connection(url, retries=0) -> List[str]:
       conn.close()
       return [], ""
     if response_code[0] == '1':
-      print('HANDLING OF 1X RESPONSES NOT IMPLEMENTED YET')
-      conn.close()
-      return [], ""
+      print("INPUT REQUESTED BY SERVER. SEE META FOR PROMPT.")
+      print_repl_prompt()
+      user_response = input()
+      tokenized_current_url = urlparse(url)
+      tokenized_current_url = tokenized_current_url._replace(query=quote(user_response))
+      new_url = urlunparse(tokenized_current_url)
+      links, url = do_connection(new_url)
     elif response_code[0] == '2':
       links, body = parse_links(body)
       print(body)
@@ -172,8 +180,7 @@ def get_new_link(input_url, current_link) -> str:
   return new_url
 
 
-def print_repl_prompt() -> None:
-  print(">>>", end=" ")
+
 
 def client(url) -> None:
   print("Stellar Gemini Client")
